@@ -1,9 +1,11 @@
+
 import requests
 import random
 import http.cookiejar
 import socket
+
 # Set up web scraping function to output the html text file
-def webscrape(login_url,host_url,login_data,target_url):
+def webscrape(login_url,login_data,target_url):
     #static values preparation
     ##import header
     user_agents = [
@@ -17,11 +19,12 @@ def webscrape(login_url,host_url,login_data,target_url):
                 "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:10.0) Gecko/20100101 Firefox/10.0 ",
                 ] 
     agent = random.choice(user_agents)
+    #Because by insert cookie, the headers no longer required,I will just keep some.
     headers={'User-agent':agent,
             'Accept':'*/*',
              'Accept-Language':'en-US,en;q=0.9;zh-cmn-Hans',
-             'Host':host_url,
-             'charset':'utf-8',
+             'Referer':login_url,
+            
             }
     ##set up cookie jar
     cj = http.cookiejar.CookieJar()
