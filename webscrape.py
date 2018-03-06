@@ -1,23 +1,30 @@
-# Marvin Yuan
-# date:2018/2/7
+
+
+# marvin
+# date:2018/2/23
 
 import getpass
-# login stage preparation
 
+import requests
+
+# login stage preparation
 def login_values():
     login="https://www.tianyancha.com/login"
     username = input("Please insert your username: ") 
     password = getpass.getpass("Please type in your password: ")
-    #host="www.tianyancha.com"
+    #host="https://www.tianyancha.com"
     #store login screts
+    s=requests.Session()
+    s.get(login)
+    authenticity_token=s.cookies['csrfToken']
     data = {
         "username": username, 
         "password": password, 
+        "csrfmiddlewaretoken":authenticity_token
     }
     return login,data
 
 ####################################################################
-import requests
 import random
 import http.cookiejar
 import socket
@@ -39,19 +46,16 @@ def webscrape(login_url,login_data,target_url):
     agent = random.choice(user_agents)
     #Because by insert cookie, the headers no longer required,I will just keep some.
     headers={'User-agent':agent,
-            'Accept':'*/*',
-             'Accept-Language':'en-US,en;q=0.9;zh-cmn-Hans',
-             'Referer':login_url,
-            
+             'Referer':"https://www.tianyancha.com",
             }
+    
     ##set up cookie jar
     cj = http.cookiejar.CookieJar()
-    #
     # get the html file
     socket.setdefaulttimeout(20)
     s=requests.Session()
-    req=s.post(login_url, data=login_data)
-    res = s.get(target_url, cookies=cj,headers=headers)
+    req= s.post(login_url, data=login_data,headers=dict(referer = login_url))
+    res = s.get(target_url,cookies=cj,headers=headers)
     html=res.text
     s.cookies.clear()
     return html
@@ -107,6 +111,7 @@ def scrapchs(keyword,login_url,login_info,chslinks):
         soup=BeautifulSoup(targethtml,"lxml") 
         titlebox=soup.find('div',class_='company_header_width ie9Style position-rel')
         companyinfo=soup.find('div',class_='baseInfo_model2017')
+        
         #start to write in data
         
         #连锁店名
@@ -115,7 +120,7 @@ def scrapchs(keyword,login_url,login_info,chslinks):
         #门店名
         try:
             retname=titlebox.find('span',class_='f18 in-block vertival-middle sec-c2',text=True).text
-            print("Scraping {}".format(retname))
+            
         except AttributeError:
             retname=="NA"
             print("Can't find {}".format(name[1]))
@@ -161,9 +166,13 @@ def scrapchs(keyword,login_url,login_info,chslinks):
             pass
         file[name[5]]=address
         
-        #城市
-        city=keyword[:2]
-        file[name[6]]=city
+        #登记机关
+        try:
+            register_authority=soup.find('table',class_='table companyInfo-table f14').tbody.find_all('td')[18].text
+        except AttributeError：
+            register_authority="NA"
+            print("Can't find {}".format(name[6]))
+        file[name[6]]=register_authority
         
         #邮箱
         try:
@@ -183,8 +192,6 @@ def scrapchs(keyword,login_url,login_info,chslinks):
     return file
 
 ######################################################################
-import numpy as np
-import pandas as pd
 
 def getcsv():
     #search keywords stage preparation
@@ -200,6 +207,7 @@ def getcsv():
     keywords=chs['客户']
     login_url,login_data=login_values()
     for keyword in keywords:
+        print("Scraping {}".format(keyword))
         myurl="https://www.tianyancha.com/search/os2?key={}".format(keyword)
         chs_html=webscrape(login_url,login_data,myurl)
 
@@ -209,3 +217,6 @@ def getcsv():
    
     print("\nAll chain stores' retailers generation complete!\n You are all set!")
     return 
+
+if __name__ == '__main__':
+    getcsv()
